@@ -78,7 +78,6 @@ Bij een private repository heb je GitHub-toegang nodig. Deelnemers beginnen bij 
 | `stap-1.md`, `stap-2.md`, `stap-3.md` | Handleidingen met opdrachten en controles |
 | `stap-1/` | Simulator 1.0, Dockerfile, dependencies en Kubernetes-YAML |
 | `stap-2/` | Simulator 2.0 en de RabbitMQ-configuratie |
-| `begeleider/` | PowerPoint en spreektekst v6 |
 
 ## Voorbereiding en gebruik
 
