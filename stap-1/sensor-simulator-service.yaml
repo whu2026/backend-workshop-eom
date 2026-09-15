@@ -2,6 +2,7 @@ apiVersion: v1
 kind: Service
 metadata:
   name: sensor-simulator-service
+  namespace: backend-workshop
 spec:
   type: ClusterIP
   selector:

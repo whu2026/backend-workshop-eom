@@ -1,8 +1,10 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: rabbitmq
-  namespace: luke
+  name: rabbitmq-deployment
+  namespace: backend-workshop
+  labels:
+    app: rabbitmq
 spec:
   replicas: 1
   selector:
@@ -18,10 +20,10 @@ spec:
           image: rabbitmq:4.2-management
           imagePullPolicy: IfNotPresent
           ports:
-            - name: amqp
-              containerPort: 5672
-            - name: management
-              containerPort: 15672
+            - containerPort: 5672
+              name: amqp
+            - containerPort: 15672
+              name: http
           env:
             - name: RABBITMQ_DEFAULT_USER
               valueFrom:
@@ -33,19 +35,3 @@ spec:
                 secretKeyRef:
                   name: rabbitmq-credentials
                   key: password
-          readinessProbe:
-            exec:
-              command:
-                - rabbitmq-diagnostics
-                - -q
-                - ping
-            initialDelaySeconds: 20
-            periodSeconds: 10
-          livenessProbe:
-            exec:
-              command:
-                - rabbitmq-diagnostics
-                - -q
-                - ping
-            initialDelaySeconds: 60
-            periodSeconds: 30

@@ -2,6 +2,7 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: sensor-simulator
+  namespace: backend-workshop
 spec:
   replicas: 1
   selector:
@@ -14,17 +15,22 @@ spec:
     spec:
       containers:
         - name: sensor-simulator
-          # Pas groep1 aan naar de eigen groepsnaam.
-          image: whu1/sensor-simulator:groep1-1.0
+          image: whu1/sensor-simulator:2.0
           imagePullPolicy: Always
           ports:
             - name: http
               containerPort: 5000
           env:
             - name: RABBITMQ_HOST
-              value: rabbitmq-service.luke.svc.cluster.local
+              value: rabbitmq-service.backend-workshop.svc.cluster.local
             - name: RABBITMQ_PORT
               value: "5672"
+            - name: RABBITMQ_VHOST
+              value: "/"
+            - name: EXCHANGE_NAME
+              value: sim_sensor_exchange
+            - name: ROUTING_KEY
+              value: sensor.data
             - name: RABBITMQ_USER
               valueFrom:
                 secretKeyRef:
@@ -35,8 +41,3 @@ spec:
                 secretKeyRef:
                   name: rabbitmq-credentials
                   key: password
-            - name: RABBITMQ_VHOST
-              value: "/"
-            - name: ROUTING_KEY
-              value: sensor.data
-
