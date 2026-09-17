@@ -62,14 +62,7 @@ De Ingress bevat `rabbitmq.workshop.example` als voorbeeldadres. Vervang dit vó
 
 ## Start
 
-Lees de handleidingen direct op GitHub, download via **Code → Download ZIP**, of clone:
-
-```bash
-git clone https://github.com/whu2026/backend-workshop-eom.git
-cd backend-workshop-eom
-```
-
-Bij een private repository heb je GitHub-toegang nodig. Deelnemers beginnen bij [stap-1.md](stap-1.md); de begeleider gebruikt daarnaast de bronbestanden in [stap-1](stap-1/) en [stap-2](stap-2/). De Bash-commando's voor het cluster voer je op de workshopmachine uit.
+Deelnemers beginnen bij [stap-1.md](stap-1.md); de begeleider gebruikt daarnaast de bronbestanden in [stap-1](stap-1/) en [stap-2](stap-2/). De Bash-commando's voor het cluster voer je op de workshopmachine uit.
 
 ## Bestanden
 
