@@ -96,15 +96,9 @@ spec:
               name: http
           env:
             - name: RABBITMQ_DEFAULT_USER
-              valueFrom:
-                secretKeyRef:
-                  name: rabbitmq-credentials
-                  key: username
+              value: "sas_user"
             - name: RABBITMQ_DEFAULT_PASS
-              valueFrom:
-                secretKeyRef:
-                  name: rabbitmq-credentials
-                  key: password
+              value: "sas_password123"
 ```
 
 Dit is een eenvoudige workshopbroker zonder persistent volume en zonder readiness-probe. `Running` is daarom nog geen bewijs dat RabbitMQ klaar is voor clients: controleer ook de Management UI. Bij vervanging van de Pod kunnen queues, bindings en berichten verloren gaan. Ook `Durable` queues en persistente berichten lossen ontbrekende blijvende opslag niet op. Deploy de broker dus vóór de deelnemers hun queues maken; herdeploy hem niet tussendoor.
