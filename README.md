@@ -1,81 +1,61 @@
-# Backendworkshop EOM
+# Backendworkshop EOM — Kubernetes
 
-Hoe komt een realtime meting bij de juiste toepassing terecht? We beginnen met een kort praktijkvoorbeeld: een Jetson-camera en SAS ESP leveren detecties die via RabbitMQ verder verwerkt kunnen worden. Vervolgens bouwen we dezelfde basisroute met een Python-sensorsimulator.
+**new-v1 · 60 minuten.** Na ETL in SAS Studio en rapporten in SAS Visual Analytics bekijken we hoe de applicaties achter die schermen draaien. We verbinden SAS 9 en het huidige SAS Viya-platform met Kubernetes. Daarna deploy je zelf een webserver en bouw je een kleine Python-app als containerimage.
 
-Docker en Kubernetes vormen de ondergrond. RabbitMQ is het centrale workshoponderdeel: we richten routes in, volgen berichten en bekijken het resultaat in de RabbitMQ Management UI. Met frontend bedoelen we hier deze bestaande webinterface; we bouwen geen eigen frontend-applicatie.
+## Wat je gaat leren
 
-## Workshoproute
+- Image, container, Pod, node en cluster uit elkaar houden.
+- De rol van ConfigMap, Deployment, Service en Ingress uitleggen.
+- Met een template een applicatie deployen en via een eigen hostname testen.
+- Met `kubectl get`, `describe`, `logs` en `rollout status` controleren wat er gebeurt.
+- Met Docker een eigen image bouwen, delen via een registry en uitvoeren in Kubernetes.
+
+## Route en tijd
+
+| Minuut | Onderdeel | Werkvorm |
+|---|---|---|
+| 0–8 | Frontend naar backend; SAS 9 en Viya; live Deployments en Pods bekijken | Uitleg en demo |
+| 8–20 | Kubernetes: cluster, Deployment, Service, Ingress en ConfigMap | Uitleg met schema's |
+| 20–34 | [Stap 1: bestaande image deployen](stap-1.md) | Zelf doen |
+| 34–40 | Docker en images begrijpen | Uitleg |
+| 40–54 | [Stap 2: eigen simulator bouwen en deployen](stap-2.md) | Zelf doen |
+| 54–57 | [Stap 3: controleren en terugkijken](stap-3.md) | Samen |
+| 57–59 | Korte RabbitMQ-demonstratie | Alleen begeleider |
+| 59–60 | Afsluiting | Samen |
 
 ```mermaid
 flowchart TD
-    S["Stap 1: Python-sensorsimulator"] --> D["Docker-image en container"]
-    D --> K["Kubernetes: Deployment, Pod en Service"]
-    K --> R["Stap 2: RabbitMQ exchange"]
-    R --> Q["Persoonlijke queue per deelnemer"]
-    Q --> U["Berichten bekijken in Management UI"]
-    Q --> E["Stap 3: routering en policies onderzoeken"]
-    Q -.-> C["Vervolg: consumer voor verwerking of meldingen"]
+    A["SAS Studio en VA: wat je gebruikt"] --> B["Viya: services op Kubernetes"]
+    B --> C["Stap 1: bestaande image"]
+    B --> D["Stap 2: eigen Docker-image"]
+    C --> E["Deployment → Pod"]
+    D --> E
+    E --> F["Service en Ingress: bereikbaar maken"]
+    F --> G["Stap 3: resultaat controleren"]
 ```
 
-| Stap | Wat doen we? | Wie voert uit? | Handleiding |
-| --- | --- | --- | --- |
-| 1 | Simulator uitleggen, image bouwen, container testen en deployen in Kubernetes | Begeleider demonstreert; deelnemers kijken mee | [stap-1.md](stap-1.md) |
-| 2 | Eén broker deployen, eigen queues binden, handmatig testen en daarna simulator 2.0 verbinden | Begeleider deployt; deelnemers gebruiken de Management UI | [stap-2.md](stap-2.md) |
-| 3 | Verkeerde routing key, TTL, max length, direct/topic/fanout en gekoppelde exchanges | Deelnemers oefenen; selectie afhankelijk van de tijd | [stap-3.md](stap-3.md) |
+## Vooraf klaarzetten
 
-Elke stap eindigt met een checkpoint. De basisroute staat centraal. Voor ongeveer één uur kiest de begeleider een beperkt aantal experimenten; alle proeven blijven in de handleiding beschikbaar.
+De begeleider zorgt voor een werkende Kubernetes-context, namespace `backend-workshop`, Ingress-controller, DNS-hostnames, registry-toegang en `config/workshop.json`. Iedereen krijgt een **unieke naam**, bijvoorbeeld `a01`. Er zijn geen groepen. Alle oefeningen worden uitgevoerd in **Bash op de workshopserver**, niet in Windows CMD. Nodig op die server: `kubectl`, Docker, Python 3, `curl` en een editor.
 
-## Leerdoelen
+Download de bestanden via GitHub → Code → Download ZIP, of:
 
-Na de workshop kun je:
+```bash
+git clone https://github.com/whu2026/backend-workshop-eom.git
+cd backend-workshop-eom
+```
 
-- uitleggen waarom we een applicatie verpakken als image en uitvoeren als container;
-- de rollen van Pod, Deployment en Service onderscheiden;
-- volgen hoe een producer via exchange, routing key en binding een queue bereikt;
-- een eigen queue en binding maken en de ontvangen JSON bekijken;
-- het resultaat van de uitgevoerde experimenten verklaren.
-
-## Eén gedeelde omgeving, een eigen queue
-
-Er zijn geen groepen. De begeleider beheert de simulator en de gedeelde broker. Iedere deelnemer gebruikt een unieke korte naam, bijvoorbeeld `wenjie2`, met alleen kleine letters en cijfers.
-
-| Onderdeel | Afspraak |
-| --- | --- |
-| Kubernetes-namespace | `backend-workshop` |
-| Simulator | Eén centrale Deployment `sensor-simulator` |
-| RabbitMQ Deployment | `rabbitmq-deployment` |
-| Virtual host | `/` |
-| Gedeelde exchange | `sim_sensor_exchange`, type `direct` |
-| Routing key | `sensor.data` |
-| Eigen basisqueue | `sensor_queue_<naam>` |
-| Experimentresources | Eigen namen volgens [stap-3.md](stap-3.md) |
-
-Iedere correct gebonden persoonlijke queue krijgt een eigen kopie. Een eigen exchange maak je pas bij de experimenten met exchange-types. Verander de gedeelde basisexchange niet.
-
-## Benodigdheden
-
-**Deelnemers:** een browser, toegang tot de afgesproken workshopomgeving en de RabbitMQ Management UI. De begeleider deelt het UI-adres en de inloggegevens apart. Het deelnemerswerk gebeurt in de UI; lokaal Docker of kubectl installeren is daarvoor niet nodig.
-
-**Begeleider:** een Bash-terminal met Docker, kubectl en curl, cluster- en registry-toegang, een voorbereide namespace, Secret `rabbitmq-credentials`, een werkende Ingress/DNS-route en rechten om RabbitMQ-policies te maken. De bestanden gebruiken `whu1/sensor-simulator` als workshopregistry; pas imageverwijzingen aan als je een ander account gebruikt.
-
-De Ingress bevat `rabbitmq.workshop.example` als voorbeeldadres. Vervang dit vóór het deployen door het door de beheerder geregelde adres. De benodigde Ingress-controller en DNS moeten al beschikbaar zijn.
-
-## Start
-
-Deelnemers beginnen bij [stap-1.md](stap-1.md); de begeleider gebruikt daarnaast de bronbestanden in [stap-1](stap-1/) en [stap-2](stap-2/). De Bash-commando's voor het cluster voer je op de workshopmachine uit.
+Lees eventueel eerst [SAS 9 en Viya in het kort](SAS-9-EN-VIYA.md). Start daarna met [stap-1.md](stap-1.md). De werkmapgenerator geeft resources jouw naam. In je eigen nginx-map staan vier YAML-bestanden. Controleer je namen en labels, vul de image en hostname in en personaliseer de HTML in de ConfigMap. Pas labels, selectors en resource-namen niet los aan.
 
 ## Bestanden
 
-| Locatie | Inhoud |
-| --- | --- |
-| `stap-1.md`, `stap-2.md`, `stap-3.md` | Handleidingen met opdrachten en controles |
-| `stap-1/` | Simulator 1.0, Dockerfile, dependencies en Kubernetes-YAML |
-| `stap-2/` | Simulator 2.0 en de RabbitMQ-configuratie |
+- `stap-1/templates/`: templates voor de werkmapgenerator.
+- `stap-1/nginx/`: vier gewone YAML-bestanden om handmatig aan te passen.
+- `stap-2/simulator/`: Python-app, Dockerfile en buildcontext.
+- `stap-2/templates/`: dezelfde Kubernetes-route voor de simulator.
+- `oplossingen/`: volledig ingevulde voorbeelden en uitleg.
+- [BEGELEIDER.md](BEGELEIDER.md): voorbereiding, live demo, timing en uitwijkroutes.
+- [GITHUB-VERNIEUWEN.md](GITHUB-VERNIEUWEN.md): deze versie naar de bestaande repository zetten.
+- [BRONNEN.md](BRONNEN.md): officiële achtergrondinformatie.
 
-## Voorbereiding en gebruik
-
-- Bewaar wachtwoorden, tokens en ingevulde Secrets buiten GitHub. Log interactief in.
-- De begeleider deployt RabbitMQ eenmaal vóór de oefeningen en maakt de gedeelde exchange vóór simulator 2.0 start.
-- De workshopbroker heeft geen blijvende opslag. Herstart hem niet tijdens de oefeningen.
-- Policies richten zich uitsluitend op jouw persoonlijke experimentqueue.
-- Stap 1 en stap 2 bevatten de volledige code; de losse bestanden in dit pakket sluiten daarop aan.
+RabbitMQ is uitsluitend een kort, vooraf ingericht voorbeeld aan het einde. Er zijn geen RabbitMQ-opdrachten. SAS Viya wordt alleen bekeken; we installeren of wijzigen het niet tijdens de workshop.
