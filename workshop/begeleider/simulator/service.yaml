@@ -1,0 +1,12 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: sensor-simulator-demo
+  namespace: backend-workshop
+spec:
+  selector:
+    app: sensor-simulator-demo
+  ports:
+    - port: 80
+      targetPort: 5000
+  type: ClusterIP

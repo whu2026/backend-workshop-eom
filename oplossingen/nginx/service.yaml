@@ -3,13 +3,10 @@ kind: Service
 metadata:
   name: nginx-demo-service-voorbeeld
   namespace: backend-workshop
-  labels:
-    workshop-owner: voorbeeld
 spec:
-  type: ClusterIP
   selector:
     app: nginx-demo-voorbeeld
   ports:
-    - name: http
-      port: 80
-      targetPort: http
+    - port: 80
+      targetPort: 80
+  type: ClusterIP

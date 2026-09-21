@@ -1,96 +1,63 @@
-# Stap 2 — Zelf een Docker-image bouwen
+# Stap 2 — Een simulatorimage bouwen
 
-**Uitleg: 34–40 minuten · Zelf doen: 40–54 minuten.**
+**Doel:** begrijpen hoe code een image wordt. **Deelnemers bouwen zelf. De begeleider pusht en deployt.**
 
-Een image bevat de applicatie en de gebruikersruimte die deze nodig heeft. Een container is een draaiende instantie van die image. Docker bouwt en test onze image. Kubernetes laat containers op nodes draaien via een container runtime; Docker Engine is daarvoor niet verplicht.
+## 1. Bekijk de code en het bouwrecept
 
-Onze kleine Python-simulator maakt iedere seconde een voorbeeldmeting. `GET /sensor` geeft de nieuwste meting als JSON; `/healthz` is de controle-URL. Hij publiceert geen berichten. De code gebruikt alleen de Python-standaardbibliotheek; daarom is hier geen `requirements.txt` of pip-installatie nodig. De eenvoudige HTTP-server is voor deze oefening, niet een uitgewerkte productieserver.
+De simulator maakt iedere seconde een JSON-meting en schrijft die naar de logs. Hij biedt HTTP op poort 5000: `/sensor` geeft de laatste meting en `/healthz` de status. Er zit geen RabbitMQ-koppeling in deze oefencode.
 
-## 1. Bouwbestanden bekijken en bouwen — 4 minuten
+De Dockerfile kiest Python als basis, kopieert app.py en start Python. Er zijn geen extra packages nodig; de code gebruikt de standaardbibliotheek.
 
-Keer terug naar de repositorymap met `cd "$REPO"`, met de variabelen uit stap 1. In een nieuwe terminal laad je eerst `source "$HOME/workshop/a01/workshop.env"` (gebruik je eigen naam) en ga je handmatig naar de repositorymap:
+## 2. Maak een eigen kopie en bouw
 
-```bash
-cat stap-2/simulator/Dockerfile
-printf '%s\n' "$IMAGE"
-docker build -t "$IMAGE" stap-2/simulator
-docker image inspect "$IMAGE" --format '{{.Id}}'
-```
-
-| Regel | Betekenis |
-|---|---|
-| `FROM python:3.12-slim` | Basisimage met Python |
-| `WORKDIR /app` | Werkmap in de image |
-| `COPY app.py .` | Voeg onze code toe |
-| `USER 10001:10001` | Voer de app zonder root uit |
-| `EXPOSE 5000` | Documenteert de applicatiepoort |
-| `CMD ["python", "app.py"]` | Startcommando van de container |
-
-**Verwacht:** een succesvolle build met jouw eigen tag. Het laatste argument van `docker build` is de buildcontext, niet de naam van de Dockerfile. Deze bestanden zijn vooraf klaar; je hoeft geen Python te schrijven.
-
-## 2. Als container testen — 2 minuten
+De begeleider heeft `~/workshop/simulator` klaargezet. Vervang `wenjie` door jouw naam.
 
 ```bash
-docker run -d --name "$SIM" -p 127.0.0.1::5000 "$IMAGE"
-docker port "$SIM" 5000/tcp
-LOCAL_PORT=$(docker port "$SIM" 5000/tcp | awk -F: '{print $NF}')
-curl --fail --retry 5 --retry-connrefused --retry-delay 1 "http://127.0.0.1:$LOCAL_PORT/sensor"
-docker logs "$SIM" --tail=3
+cd ~/workshop/simulator
+mkdir wenjie
+cp app.py Dockerfile wenjie/
+cd wenjie
+docker build -t sensor-simulator:wenjie .
+docker images sensor-simulator
 ```
 
-Docker kiest een vrije lokale poort. Zo botsen deelnemers op dezelfde server niet op poort 8080. `127.0.0.1` verwijst hier naar de workshopserver waarop je terminal draait. De mapping is hostpoort → containerpoort 5000; `EXPOSE` op zichzelf publiceert geen poort.
+De centrale code blijft intact. Als je de opdracht herhaalt, ga je naar je bestaande eigen map.
 
-**Verwacht:** JSON met `sensor_id`, `timestamp`, `temperature`, `humidity` en `sequence`. Herhaal `curl` na enkele seconden: de sequence neemt toe. De waarden zijn willekeurig, dus exacte temperaturen verschillen. Je container heeft jouw eigen naam.
+**Verwacht:** de build eindigt zonder fout en de lijst bevat repository `sensor-simulator` met jouw tag. De image-ID kan bij deelnemers gelijk zijn: dezelfde code en basis kunnen dezelfde image opleveren.
 
-## 3. Image beschikbaar maken voor Kubernetes — 2 minuten
+**Vraag:** wat is de punt bij docker build?  
+**Antwoord:** de huidige map is de buildcontext. Docker vindt daar de Dockerfile en app.py.
+
+**Checkpoint 3:** wijs je eigen image en tag aan. Hiermee is je bouwopdracht afgerond. Je hoeft niet in te loggen op Docker Hub, te pushen of de simulator te deployen.
+
+## 3. Optioneel: kort als container starten
 
 ```bash
-docker push "$IMAGE"
+docker run --rm sensor-simulator:wenjie
 ```
 
-**Verwacht:** push voltooid en een digest in de uitvoer. Registry-login is vooraf geregeld in je eigen gebruikersomgeving. Een lokaal gebouwde image staat niet automatisch op alle clusternodes. Docker-login geeft Kubernetes geen pullrechten: bij een private registry regelt de begeleider ook een pull-Secret in de namespace. Zet geen tokens of wachtwoorden in Git of in commando's op de slide.
+**Verwacht:** JSON-metingen met `sensor_id`, `timestamp`, `temperature`, `humidity` en `sequence`. Stop na enkele regels met **Ctrl+C**. Door `--rm` wordt de container opgeruimd; de image blijft staan. Er wordt geen serverpoort gepubliceerd, dus deelnemers krijgen geen poortconflict.
 
-## 4. Eigen image deployen — 4 minuten
+**Vraag:** wat is het verschil tussen image en container?  
+**Antwoord:** de image is het pakket; de container is een draaiende uitvoering ervan.
 
-```bash
-printf '%s\n' "$IMAGE"
-nano "$WORK/stap-2/deployment.yaml"
-```
+## 4. Kijk mee met de begeleidersdemo
 
-Vervang `VUL_IMAGE_IN` door exact de gepushte image inclusief tag. De template heeft al de juiste containerpoort 5000 en readiness-probe.
+De begeleider gebruikt een demo-image van dezelfde code en zijn eigen Docker Hub-account:
 
-```bash
-kubectl -n "$NS" apply -f "$WORK/stap-2/deployment.yaml"
-kubectl -n "$NS" apply -f "$WORK/stap-2/service.yaml"
-kubectl -n "$NS" rollout status deployment/"$SIM" --timeout=90s
-kubectl -n "$NS" get pods -l app="$SIM" -o wide
-kubectl -n "$NS" logs deployment/"$SIM" --tail=3
-kubectl -n "$NS" exec deployment/"$WEB" -- wget -qO- "http://$SIM/sensor"
-```
+1. De lokale demo-image krijgt een repositorynaam en tag.
+2. De begeleider pusht de image.
+3. De Deployment verwijst naar die gepubliceerde image.
+4. De Service biedt poort 80 aan en stuurt naar applicatiepoort 5000.
+5. Na apply bekijkt de begeleider Pods en Services.
+6. In de browser toont `/sensor` de JSON uit de Kubernetes-Pod.
 
-**Verwacht:** eigen simulator-Pod `1/1 Running`, JSON in logs en via de Service. We gebruiken de nginx-Pod uit stap 1 als interne testclient. De simulatorimage zelf bevat geen `curl` of `wget`.
+Je voert deze stappen niet zelf uit tijdens de workshop. Demo-instructies staan apart in [BEGELEIDER.md](BEGELEIDER.md).
 
-**Checkpoint:** vertel hoe de image vanuit de registry bij jouw Pod komt. **Antwoord:** de node haalt de image op via zijn container runtime; de Deployment beschrijft welke image gebruikt wordt.
+**Vraag:** waarom publiceren in een registry?  
+**Antwoord:** een lokaal gebouwde image is niet automatisch aanwezig op de Kubernetes-nodes. Die moeten hem kunnen ophalen.
 
-## 5. Via eigen hostname testen — 2 minuten
+**Vraag:** welke onderdelen herken je van nginx?  
+**Antwoord:** Deployment, Pod, Service en Ingress. De image en doelpoort zijn anders.
 
-```bash
-printf '%s\n' "$SIM_HOST"
-nano "$WORK/stap-2/ingress.yaml"
-```
-
-Vervang iedere `VUL_HOST_IN` door je simulator-hostname. Daarna:
-
-```bash
-kubectl -n "$NS" apply -f "$WORK/stap-2/ingress.yaml"
-curl --fail --show-error --max-time 10 "$SCHEME://$SIM_HOST/sensor"
-printf 'Open: %s://%s/sensor\n' "$SCHEME" "$SIM_HOST"
-docker stop "$SIM"
-docker rm "$SIM"
-```
-
-**Verwacht:** dezelfde soort JSON via de externe route. De lokale container en de Kubernetes-Pod zijn aparte processen: hun sequence en metingen hoeven niet gelijk te zijn. Na stoppen van de lokale container blijft de Kubernetes-Pod werken.
-
-**Stap 2 afgerond:** je hebt gebouwd, lokaal getest, gepusht, gedeployed en via een Service plus Ingress getest. Ga naar [stap 3](stap-3.md).
-
-**Bij vertraging:** meld het aan de begeleider. Gebruik desnoods de vooraf gebouwde simulatorimage om de Kubernetes-stappen af te ronden; oefen het bouwen later opnieuw. Hergebruik bij een nieuwe build liever een nieuwe tag, bijvoorbeeld `a01-new-v1-2`, en pas de Deployment aan. Dezelfde tag met `IfNotPresent` kan een oude image op de node blijven gebruiken.
+Stap 2 is klaar. Ga samen door naar [stap 3](stap-3.md).

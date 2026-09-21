@@ -1,61 +1,35 @@
-# Backendworkshop EOM — Kubernetes
+# Backendworkshop Kubernetes — new-v4
 
-**new-v1 · 60 minuten.** Na ETL in SAS Studio en rapporten in SAS Visual Analytics bekijken we hoe de applicaties achter die schermen draaien. We verbinden SAS 9 en het huidige SAS Viya-platform met Kubernetes. Daarna deploy je zelf een webserver en bouw je een kleine Python-app als containerimage.
+Van SAS Studio en Visual Analytics naar de backend: wat doet Kubernetes en hoe laat je zelf een applicatie draaien?
 
-## Wat je gaat leren
+## Route van het uur
 
-- Image, container, Pod, node en cluster uit elkaar houden.
-- De rol van ConfigMap, Deployment, Service en Ingress uitleggen.
-- Met een template een applicatie deployen en via een eigen hostname testen.
-- Met `kubectl get`, `describe`, `logs` en `rollout status` controleren wat er gebeurt.
-- Met Docker een eigen image bouwen, delen via een registry en uitvoeren in Kubernetes.
+| Onderdeel | Wie doet het? | Resultaat |
+| --- | --- | --- |
+| SAS 9, SAS Viya en Kubernetes | Uitleg en live demo | Begrijpen wat achter de schermen draait |
+| [Stap 1](stap-1.md): nginx | Deelnemers | Eigen YAML, Pod, Service en website |
+| [Stap 2](stap-2.md): simulatorimage | Deelnemers | Zelf gebouwde lokale image |
+| Simulator pushen en deployen | Begeleider | Dezelfde code draait in Kubernetes |
+| [Stap 3](stap-3.md): controleren en verklaren | Samen | De route kunnen uitleggen |
+| RabbitMQ | Optionele demo van één minuut | Een ander voorbeeld van een workload |
 
-## Route en tijd
+De workshop duurt 60 minuten. [Tijdschema en voorbereiding](BEGELEIDER.md).
 
-| Minuut | Onderdeel | Werkvorm |
-|---|---|---|
-| 0–8 | Frontend naar backend; SAS 9 en Viya; live Deployments en Pods bekijken | Uitleg en demo |
-| 8–20 | Kubernetes: cluster, Deployment, Service, Ingress en ConfigMap | Uitleg met schema's |
-| 20–34 | [Stap 1: bestaande image deployen](stap-1.md) | Zelf doen |
-| 34–40 | Docker en images begrijpen | Uitleg |
-| 40–54 | [Stap 2: eigen simulator bouwen en deployen](stap-2.md) | Zelf doen |
-| 54–57 | [Stap 3: controleren en terugkijken](stap-3.md) | Samen |
-| 57–59 | Korte RabbitMQ-demonstratie | Alleen begeleider |
-| 59–60 | Afsluiting | Samen |
+## Beginnen
 
-```mermaid
-flowchart TD
-    A["SAS Studio en VA: wat je gebruikt"] --> B["Viya: services op Kubernetes"]
-    B --> C["Stap 1: bestaande image"]
-    B --> D["Stap 2: eigen Docker-image"]
-    C --> E["Deployment → Pod"]
-    D --> E
-    E --> F["Service en Ingress: bereikbaar maken"]
-    F --> G["Stap 3: resultaat controleren"]
-```
+Open de handleiding bij de huidige stap. De begeleider zet de map **workshop** vooraf in je thuismap op de workshopserver. Je voert de commando’s daar in Bash uit via MobaXterm/SSH. Op je laptop heb je een browser en eventueel Notepad of VS Code nodig. Gebruik VPN als dat nodig is voor het interne workshopnetwerk.
 
-## Vooraf klaarzetten
+Iedereen gebruikt namespace **backend-workshop**, maar krijgt een unieke korte naam: kleine letters, cijfers en eventueel een koppelteken. Begin en eindig met een letter of cijfer. Gebruik steeds dezelfde naam; bijvoorbeeld `wenjie`. De punthaken in `<naam>` zijn alleen een invulmarkering en worden niet overgenomen.
 
-De begeleider zorgt voor een werkende Kubernetes-context, namespace `backend-workshop`, Ingress-controller, DNS-hostnames, registry-toegang en `config/workshop.json`. Iedereen krijgt een **unieke naam**, bijvoorbeeld `a01`. Er zijn geen groepen. Alle oefeningen worden uitgevoerd in **Bash op de workshopserver**, niet in Windows CMD. Nodig op die server: `kubectl`, Docker, Python 3, `curl` en een editor.
-
-Download de bestanden via GitHub → Code → Download ZIP, of:
-
-```bash
-git clone https://github.com/whu2026/backend-workshop-eom.git
-cd backend-workshop-eom
-```
-
-Lees eventueel eerst [SAS 9 en Viya in het kort](SAS-9-EN-VIYA.md). Start daarna met [stap-1.md](stap-1.md). De werkmapgenerator geeft resources jouw naam. In je eigen nginx-map staan vier YAML-bestanden. Controleer je namen en labels, vul de image en hostname in en personaliseer de HTML in de ConfigMap. Pas labels, selectors en resource-namen niet los aan.
+Je bewerkt eerst vier YAML-bestanden in jouw eigen map. Je kunt vim gebruiken of de bestanden via SFTP downloaden, lokaal aanpassen en terug uploaden. De oorspronkelijke templates blijven beschikbaar.
 
 ## Bestanden
 
-- `stap-1/templates/`: templates voor de werkmapgenerator.
-- `stap-1/nginx/`: vier gewone YAML-bestanden om handmatig aan te passen.
-- `stap-2/simulator/`: Python-app, Dockerfile en buildcontext.
-- `stap-2/templates/`: dezelfde Kubernetes-route voor de simulator.
-- `oplossingen/`: volledig ingevulde voorbeelden en uitleg.
-- [BEGELEIDER.md](BEGELEIDER.md): voorbereiding, live demo, timing en uitwijkroutes.
-- [GITHUB-VERNIEUWEN.md](GITHUB-VERNIEUWEN.md): deze versie naar de bestaande repository zetten.
-- [BRONNEN.md](BRONNEN.md): officiële achtergrondinformatie.
+- [NGINX-templates](workshop/nginx/): de vier oorspronkelijke templates met `<naam>`.
+- [Voorbeeldoplossing](oplossingen/nginx/): dezelfde templates met naam `voorbeeld`.
+- [Simulatorcode](workshop/simulator/): app.py en Dockerfile voor de build.
+- [Simulator-deploybestanden](workshop/begeleider/simulator/): alleen voor de begeleidersdemo.
+- [GitHub vernieuwen](GITHUB-VERNIEUWEN.md): zelf lokaal uitvoeren.
+- [SAS 9 en Viya](SAS-9-EN-VIYA.md) en [bronnen](BRONNEN.md).
 
-RabbitMQ is uitsluitend een kort, vooraf ingericht voorbeeld aan het einde. Er zijn geen RabbitMQ-opdrachten. SAS Viya wordt alleen bekeken; we installeren of wijzigen het niet tijdens de workshop.
+Deelnemers hebben geen Docker Hub-account nodig en voeren geen push of simulator-deployment uit. De begeleider gebruikt zijn eigen account. DNS en toegang voor de aangeleverde workshophostnamen worden vooraf geregeld.

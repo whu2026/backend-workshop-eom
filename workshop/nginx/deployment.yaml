@@ -1,0 +1,30 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  labels:
+    app: nginx-demo-<naam>
+  name: nginx-demo-deployment-<naam>
+  namespace: backend-workshop
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: nginx-demo-<naam>
+  template:
+    metadata:
+      labels:
+        app: nginx-demo-<naam>
+    spec:
+      containers:
+        - name: nginx
+          image: nginx:latest
+          ports:
+            - containerPort: 80
+          volumeMounts:
+            - name: html-volume
+              mountPath: /usr/share/nginx/html
+              readOnly: true
+      volumes:
+        - name: html-volume
+          configMap:
+            name: nginx-demo-html-<naam>

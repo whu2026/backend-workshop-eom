@@ -1,11 +1,5 @@
 __pycache__/
-*.py[cod]
-.venv/
+*.pyc
 .env
-.env.*
-!.env.example
-*secret*.yaml
-*credentials*.yaml
-*.log
-.DS_Store
-Thumbs.db
+workshop/nginx/*/
+workshop/simulator/*/

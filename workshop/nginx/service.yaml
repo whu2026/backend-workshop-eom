@@ -1,0 +1,12 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: nginx-demo-service-<naam>
+  namespace: backend-workshop
+spec:
+  selector:
+    app: nginx-demo-<naam>
+  ports:
+    - port: 80
+      targetPort: 80
+  type: ClusterIP

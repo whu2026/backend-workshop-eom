@@ -1,8 +1,0 @@
-{
-  "ingress_class": "VUL_IN",
-  "base_domain": "workshop.example.com",
-  "image_repository": "registry.example.com/workshop/simulator",
-  "web_image": "nginx:stable-alpine",
-  "image_pull_secret": "",
-  "tls_secret": ""
-}

@@ -1,27 +1,26 @@
 apiVersion: v1
 kind: ConfigMap
 metadata:
-  name: __WEB_CONFIGMAP__
-  namespace: backend-workshop
-  labels:
-    workshop-owner: __NAAM__
+  name: nginx-demo-html-<naam>
 data:
   index.html: |
     <!DOCTYPE html>
-    <html lang="nl">
+    <html>
     <head>
-      <meta charset="UTF-8">
       <title>Backend Workshop</title>
       <style>
-        body { background: #eef2f7; font-family: Arial, sans-serif;
-               text-align: center; padding: 80px; }
+        body {
+          background: #eef2f7;
+          font-family: Arial;
+          text-align: center;
+          padding: 80px;
+        }
         h1 { color: #2563eb; }
       </style>
     </head>
     <body>
       <h1>Backend Workshop</h1>
       <h2>Mijn eerste Kubernetes Deployment!</h2>
-      <p>Deelnemer: __NAAM__</p>
       <p>Deze pagina draait in een NGINX-container.</p>
       <p>De HTML komt uit een Kubernetes ConfigMap.</p>
     </body>
