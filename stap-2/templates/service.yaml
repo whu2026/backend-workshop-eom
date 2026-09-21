@@ -1,0 +1,15 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: __SIM__
+  namespace: backend-workshop
+  labels:
+    workshop-owner: __NAAM__
+spec:
+  type: ClusterIP
+  selector:
+    app: __SIM__
+  ports:
+    - name: http
+      port: 80
+      targetPort: http
