@@ -1,13 +1,15 @@
 apiVersion: v1
 kind: Service
 metadata:
-  name: sensor-simulator-service
+  name: nginx-demo-service-voorbeeld
   namespace: backend-workshop
+  labels:
+    workshop-owner: voorbeeld
 spec:
   type: ClusterIP
   selector:
-    app: sensor-simulator
+    app: nginx-demo-voorbeeld
   ports:
     - name: http
       port: 80
-      targetPort: 5000
+      targetPort: http

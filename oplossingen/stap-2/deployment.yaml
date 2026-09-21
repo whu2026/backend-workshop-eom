@@ -1,0 +1,49 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: sim-voorbeeld
+  namespace: backend-workshop
+  labels:
+    workshop-owner: voorbeeld
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: sim-voorbeeld
+  template:
+    metadata:
+      labels:
+        app: sim-voorbeeld
+        workshop-owner: voorbeeld
+    spec:
+      automountServiceAccountToken: false
+
+      containers:
+        - name: app
+          image: registry.example.com/workshop/simulator:voorbeeld-new-v1
+          imagePullPolicy: IfNotPresent
+          ports:
+            - name: http
+              containerPort: 5000
+          readinessProbe:
+            httpGet:
+              path: /healthz
+              port: http
+            initialDelaySeconds: 2
+            periodSeconds: 3
+          resources:
+            requests:
+              cpu: 50m
+              memory: 32Mi
+            limits:
+              cpu: 250m
+              memory: 128Mi
+
+          securityContext:
+            runAsNonRoot: true
+            runAsUser: 10001
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop: ["ALL"]
+            seccompProfile:
+              type: RuntimeDefault

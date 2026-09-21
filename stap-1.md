@@ -1,274 +1,201 @@
-# Stap 1 — Sensorsimulator bouwen en testen
+# Stap 1 — Je eigen nginx-pagina in Kubernetes
 
-## Doel en werkwijze
+**Tijd: minuut 20–34. Doel: je eigen webpagina via je eigen hostname.**
 
-We beginnen met een Python-applicatie die iedere seconde sensordata genereert. De begeleider bouwt hiervan een Docker-image, laat de container lokaal draaien en deployt dezelfde image vervolgens in Kubernetes. RabbitMQ komt pas in stap 2.
+We gebruiken allemaal namespace `backend-workshop`. Je werkt met vier bestanden in je eigen map `nginx`. De namen van de objecten én de labels zijn uniek per deelnemer.
 
-De bestanden zijn vooraf klaargezet; de commando's worden tijdens de workshop live uitgevoerd. Deelnemers kijken in deze stap mee. Het hands-on gedeelte met eigen queues en bindings volgt in stap 2.
+| Bestand | Taak |
+|---|---|
+| `configmap.yaml` | Bevat jouw `index.html`. |
+| `deployment.yaml` | Start nginx en koppelt de ConfigMap aan de container. |
+| `service.yaml` | Selecteert jouw Pod via een label en biedt een interne naam. |
+| `ingress.yaml` | Koppelt jouw hostname aan jouw Service. |
 
-## 1. Voorbereiding
+```mermaid
+flowchart TD
+    I["Ingress-regel: jouw hostname"] --> S["Jouw Service"]
+    S --> P["Jouw Pod met nginx"]
+    D["Deployment"] --> P
+    C["ConfigMap: index.html"] --> V["Volume: /usr/share/nginx/html"]
+    V --> P
+```
 
-Gebruik een Bash-terminal op de workshopmachine. De begeleider zet de map `stap-1` uit dit pakket vooraf in `~/workshop/stap-1`. Docker moet daar beschikbaar zijn en `kubectl` moet toegang hebben tot het bedoelde cluster. De namespace `backend-workshop` is al aangemaakt.
+Het schema toont verwijzingen. De Ingress-controller voert de HTTP-routering uit. De Deployment beheert de Pod; hij is geen tussenstation in het HTTP-verkeer.
+
+## 1. Eigen werkmap en namen — 2 minuten
+
+Begin in de uitgepakte of geclonede repositorymap. Vervang `a01` door je toegewezen unieke naam. Gebruik kleine letters en eventueel cijfers/koppeltekens.
 
 ```bash
-cd ~/workshop/stap-1
-pwd
-ls -l
+NAAM=a01
+REPO=$(pwd)
+python3 tools/maak_werkmap.py "$NAAM" --output "$HOME/workshop/$NAAM"
+source "$HOME/workshop/$NAAM/workshop.env"
 kubectl config current-context
-kubectl get namespace backend-workshop
+kubectl -n backend-workshop get pods
 ```
 
-Controleer het cluster voordat je resources toepast. De map bevat:
+De generator maakt alleen bestanden, geen clusterresources. Hij maakt onder jouw werkmap `nginx/`, `stap-2/` en `workshop.env`. De map `nginx` bevat alleen de vier YAML-bestanden. Bestaat je werkmap al, maak hem dan niet opnieuw maar laad de bestaande `workshop.env`. In iedere nieuwe terminal laad je die opnieuw.
 
-| Bestand | Functie |
-| --- | --- |
-| `app.py` | Sensordata genereren en via HTTP aanbieden |
-| `requirements.txt` | Python-dependencies |
-| `Dockerfile` | Docker-image bouwen |
-| `sensor-simulator-deployment.yaml` | Simulator in Kubernetes draaien |
-| `sensor-simulator-service.yaml` | Simulator intern bereikbaar maken |
+**Verwacht:** je eigen werkmap en de juiste Kubernetes-context. `No resources found` kan normaal zijn; `Forbidden` betekent dat rechten ontbreken.
 
-## 2. Wat doet de applicatie?
+### Namen die overal moeten kloppen
 
-De simulator genereert iedere seconde een temperatuur en luchtvochtigheid. Hij bewaart alleen de laatste meting in het geheugen en biedt deze aan via `GET /sensor`.
+De generator vult deze namen consequent in. Controleer ze zelf; bij handmatig aanpassen moet je alle verwijzingen meenemen.
 
-- `sensor_id`: de naam van de gesimuleerde sensor.
-- `timestamp`: het tijdstip in UTC.
-- `temperature` en `humidity`: willekeurige meetwaarden.
-- `sequence`: een teller binnen dit proces; die begint opnieuw bij een herstart.
+| Onderdeel | Voorbeeld voor `a01` | Waar dezelfde waarde nodig is |
+|---|---|---|
+| ConfigMap | `nginx-demo-html-a01` | `metadata.name` én Deployment `volumes[].configMap.name` |
+| Deployment | `nginx-demo-deployment-a01` | `metadata.name`; ook in je rollout/logs-commando's |
+| App-label | `nginx-demo-a01` | Deployment `spec.selector.matchLabels.app`, Podtemplate `metadata.labels.app` én Service `spec.selector.app` |
+| Service | `nginx-demo-service-a01` | `metadata.name` én Ingress `backend.service.name` |
+| Ingress | `nginx-demo-ingress-a01` | `metadata.name` |
+| Hostname | `nginx-web-a01.workshop.example.com` | Ingress `rules[].host`; bij TLS ook `tls.hosts` |
+| Eigenaarlabel | `workshop-owner: a01` | Op alle vier objecten én de Podtemplate |
+| Namespace | `backend-workshop` | Op alle vier objecten; ook de ConfigMap |
 
-### `app.py`
+**Antwoord op “ook labels en selectors aanpassen?”:** ja. Gebruik per deelnemer een eigen `app`-waarde op alle drie genoemde plekken. Anders kan de Service verkeer naar Pods van iemand anders sturen.
 
-```python
-from flask import Flask, jsonify
-from datetime import datetime, timezone
-import random
-import threading
-import time
+**Bestandsnamen zijn vrij:** bijvoorbeeld `configmap-a01.yaml` mag. Kubernetes identificeert objecten aan objecttype, namespace en `metadata.name`, niet aan de lokale bestandsnaam. Bewaar niet twee versies van hetzelfde object in dezelfde apply-map.
 
-app = Flask(__name__)
-
-latest_data = {
-    "sensor_id": "sensor-001",
-    "timestamp": None,
-    "temperature": None,
-    "humidity": None,
-    "sequence": 0
-}
-
-
-def generate_sensor_data():
-    while True:
-        latest_data["sequence"] += 1
-        latest_data["timestamp"] = datetime.now(timezone.utc).isoformat()
-        latest_data["temperature"] = round(random.uniform(18.0, 28.0), 2)
-        latest_data["humidity"] = round(random.uniform(35.0, 65.0), 2)
-        print(latest_data, flush=True)
-        time.sleep(1)
-
-
-@app.route("/sensor")
-def get_sensor_data():
-    return jsonify(latest_data)
-
-
-if __name__ == "__main__":
-    sensor_thread = threading.Thread(target=generate_sensor_data, daemon=True)
-    sensor_thread.start()
-    app.run(host="0.0.0.0", port=5000)
-```
-
-`0.0.0.0` zorgt dat Flask ook op de netwerkinterface van de container luistert. De ontwikkelserver is hier voldoende voor een workshopdemo; dit is geen productieopstelling.
-
-De terminal toont iedere seconde een Python-dictionary. De HTTP-route geeft dezelfde soort gegevens als geldige JSON terug.
-
-### `requirements.txt`
-
-```text
-flask
-pika
-```
-
-Dit is de dependencylijst uit de geteste opstelling. `pika` is alvast geïnstalleerd voor stap 2, maar wordt in deze eerste applicatieversie nog niet geïmporteerd of gebruikt. Er wordt dus nog niets naar RabbitMQ verstuurd. De versies zijn hier, net als in het testdocument, niet vastgezet; leg ze na de laatste repetitie eventueel vast voor reproduceerbare builds.
-
-### `Dockerfile`
-
-```dockerfile
-FROM python:3.11-slim
-WORKDIR /app
-COPY requirements.txt .
-RUN pip install --no-cache-dir -r requirements.txt
-COPY app.py .
-EXPOSE 5000
-CMD ["python", "app.py"]
-```
-
-De image bevat Python, de dependencies en de applicatie. `EXPOSE 5000` beschrijft de containerpoort; het publiceren van die poort gebeurt bij `docker run`.
-
-## 3. Image bouwen
-
-Voer uit vanuit `~/workshop/stap-1`:
+## 2. De vier bestanden controleren en invullen — 3 minuten
 
 ```bash
-docker build -t sensor-simulator:1.0 .
-docker images sensor-simulator
+cd "$WORK/nginx"
+ls
+printf 'Image: %s\nHost: %s\n' "$WEB_IMAGE" "$WEB_HOST"
+nano configmap.yaml
+nano deployment.yaml
+nano service.yaml
+nano ingress.yaml
 ```
 
-Verwacht: een image met repository `sensor-simulator` en tag `1.0`. De punt bij `docker build` gebruikt de huidige map als buildcontext.
+- **ConfigMap:** controleer jouw naam en pas eventueel één HTML-zin aan. Laat `index.html: |` en de inspringing intact.
+- **Deployment:** vervang `VUL_IMAGE_IN` door de getoonde, afgesproken image. Het pakket gebruikt standaard `nginx:stable-alpine`, zodat de interne `wget`-test beschikbaar is. Jouw eerdere `nginx:latest` kan ook met passende vooraf geteste controles; gebruik tijdens de workshop de image die de begeleider heeft getest.
+- **Service:** controleer jouw `app`-selector. `port: 80` is de Servicepoort; `targetPort: http` verwijst naar de benoemde containerpoort `http`, hier 80.
+- **Ingress:** vervang iedere `VUL_HOST_IN` door de toegewezen hostname, zonder `http://`, `https://` of pad. De IngressClass is vooraf ingevuld. Een host in YAML maakt geen DNS-record.
 
-## 4. Container lokaal testen
+Bewaren in nano: Ctrl+O, Enter, Ctrl+X. Gebruik spaties, geen tabs.
 
-```bash
-docker run --rm -p 5000:5000 sensor-simulator:1.0
-```
+### Hoe komt de HTML in nginx?
 
-De terminal blijft bezet en laat de metingen zien. `-p 5000:5000` koppelt poort 5000 van de Docker-host aan poort 5000 in de container. Gebruik deze demo alleen op de bedoelde workshopmachine; de poort kan via de host bereikbaar zijn.
-
-Open een tweede terminal op dezelfde machine en voer enkele keren uit, met ongeveer een seconde ertussen:
-
-```bash
-curl -sS http://localhost:5000/sensor
-```
-
-Voorbeeld van de HTTP-output:
-
-```json
-{
-  "sensor_id": "sensor-001",
-  "timestamp": "2026-09-08T09:15:23.123456+00:00",
-  "temperature": 23.4,
-  "humidity": 51.2,
-  "sequence": 12
-}
-```
-
-`timestamp` en `sequence` veranderen bij nieuwe metingen. Willekeurige meetwaarden kunnen soms toevallig gelijk zijn. Gebruik je SSH, dan betekent `localhost` hier de workshopmachine, niet je eigen laptop.
-
-Stop de container in de eerste terminal met `Ctrl+C`. Door `--rm` wordt de gestopte container verwijderd; de image blijft bestaan.
-
-## 5. Image taggen en pushen
-
-De begeleider gebruikt de registry-repository `whu1/sensor-simulator`:
-
-```bash
-docker login -u whu1
-docker tag sensor-simulator:1.0 whu1/sensor-simulator:1.0
-docker push whu1/sensor-simulator:1.0
-```
-
-Voer de login interactief uit. Zet geen wachtwoord of access token in scripts, screenshots of GitHub. Gebruik je een eigen registry-account, pas dan zowel de tag/push-commando's als `image` in de Deployment aan. Bij een private image moet het cluster vooraf de juiste pull-toegang hebben.
-
-## 6. Deployment en Service bekijken
-
-### `sensor-simulator-deployment.yaml`
+Deze fragmenten staan al in de Deployment; vergelijk de namen met de ConfigMap:
 
 ```yaml
-apiVersion: apps/v1
-kind: Deployment
-metadata:
-  name: sensor-simulator
-  namespace: backend-workshop
-spec:
-  replicas: 1
-  selector:
-    matchLabels:
-      app: sensor-simulator
-  template:
-    metadata:
-      labels:
-        app: sensor-simulator
-    spec:
-      containers:
-        - name: sensor-simulator
-          image: whu1/sensor-simulator:1.0
-          imagePullPolicy: Always
-          ports:
-            - name: http
-              containerPort: 5000
+# Onder de nginx-container:
+volumeMounts:
+  - name: html-volume
+    mountPath: /usr/share/nginx/html
+    readOnly: true
+
+# Onder spec.template.spec:
+volumes:
+  - name: html-volume
+    configMap:
+      name: nginx-demo-html-a01
 ```
 
-### `sensor-simulator-service.yaml`
+De sleutel `index.html` in de ConfigMap verschijnt als bestand `/usr/share/nginx/html/index.html`. De mount bedekt hier de standaard HTML-map van nginx. Je ziet daarom je eigen pagina. Hiervoor hoef je de image niet te bouwen. ConfigMaps zijn voor niet-geheime tekst/configuratie.
 
-```yaml
-apiVersion: v1
-kind: Service
-metadata:
-  name: sensor-simulator-service
-  namespace: backend-workshop
-spec:
-  type: ClusterIP
-  selector:
-    app: sensor-simulator
-  ports:
-    - name: http
-      port: 80
-      targetPort: 5000
-```
+| YAML-veld | Betekenis |
+|---|---|
+| `apiVersion`, `kind` | Welke API en welk objecttype. |
+| `metadata` | Naam, namespace en labels. |
+| `spec` | Gewenste configuratie. |
+| `replicas: 1` | Eén gewenste Pod. |
+| `template` | Beschrijving van de Pods. |
+| `readinessProbe` | Controle of de app klaar is voor verkeer. |
+| `resources` | CPU/geheugenaanvraag en limieten. |
 
-De Deployment draait één simulator-Pod. De Service selecteert Pods met label `app: sensor-simulator` en stuurt verkeer op poort `80` door naar poort `5000` in de Pod. Meer uitleg over deze koppeling staat in de [Kubernetes-documentatie over Services](https://kubernetes.io/docs/concepts/services-networking/service/).
+## 3. Alles samen deployen — 3 minuten
 
-## 7. Deployen in Kubernetes
-
-Pas alleen de twee bedoelde bestanden toe:
+Controleer met `pwd` dat je in **jouw nginx-map** staat. Daar horen alleen jouw vier YAML-bestanden te staan.
 
 ```bash
-kubectl -n backend-workshop apply -f sensor-simulator-deployment.yaml
-kubectl -n backend-workshop apply -f sensor-simulator-service.yaml
-kubectl -n backend-workshop rollout status deployment/sensor-simulator --timeout=120s
-kubectl -n backend-workshop get deployment,pods,service
-kubectl -n backend-workshop get endpoints sensor-simulator-service
+pwd
+kubectl -n backend-workshop apply -f .
+kubectl -n "$NS" rollout status deployment/"$WEB" --timeout=90s
+kubectl -n "$NS" get deployments,pods,configmaps -l workshop-owner="$NAAM"
+kubectl -n "$NS" get pods -l app="$WEB_APP" -o wide
+kubectl -n "$NS" logs deployment/"$WEB" --tail=10
 ```
 
-Het geteste commando `kubectl -n backend-workshop apply -f .` kan ook wanneer deze map uitsluitend de bedoelde Kubernetes-manifesten bevat. Expliciete bestandsnamen voorkomen dat andere YAML-bestanden onbedoeld worden toegepast.
+**Verwacht:** vier objecten `created` of `configured`; daarna een uitgerolde Deployment en een Pod met `1/1 Running`. Een Pod kan tijdens het aanmaken kort wachten op de ConfigMap/image. Blijft dat zo, bekijk events met `kubectl -n "$NS" describe pods -l app="$WEB_APP"`.
 
-Verwacht: de Deployment is beschikbaar, de simulator-Pod is `Running` en de Service heeft een endpoint met poort `5000`. De namen en IP-adressen van Pods verschillen per uitvoering.
+**Checkpoint 1:** wijs jouw eigen Pod aan en bevestig dat deze Ready is. `apply` toont dat de configuratie is geaccepteerd; de rollout en HTTP-test controleren de uitvoering.
 
-Bij nieuwere clusters kan `get endpoints` een deprecation-waarschuwing geven. Gebruik dan de EndpointSlice-weergave:
+## 4. Interne Service testen — 2 minuten
 
 ```bash
-kubectl -n backend-workshop get endpointslices \
-  -l kubernetes.io/service-name=sensor-simulator-service
+kubectl -n "$NS" get service "$WEB_SERVICE"
+kubectl -n "$NS" get endpointslices -l kubernetes.io/service-name="$WEB_SERVICE"
+kubectl -n "$NS" exec deployment/"$WEB" -- wget -qO- "http://$WEB_SERVICE/"
 ```
 
-## 8. Service vanuit het cluster testen
+**Verwacht:** een interne Service en een passend endpoint. De HTTP-uitvoer bevat `Backend Workshop`, `Mijn eerste Kubernetes Deployment!` en jouw naam. Geen standaard `Welcome to nginx!` meer.
+
+De test draait in de afgesproken nginx Alpine-container, waarin `wget` aanwezig is. Je laptop hoeft de ClusterIP niet rechtstreeks te kunnen bereiken. Zie je een verkeerde pagina? Controleer de ConfigMap-verwijzing en mount. Zie je een andere deelnemersnaam? Controleer eerst labels en selectors.
+
+**Vraag:** maakt de Service de Pod aan? **Antwoord:** nee. De Deployment laat Pods beheren; de Service routeert verkeer naar passende endpoints.
+
+## 5. Eigen hostname openen — 3 minuten
+
+De Ingress is al toegepast met `apply -f .`.
 
 ```bash
-kubectl -n backend-workshop run curl-test \
-  --image=curlimages/curl \
-  --restart=Never \
-  -it --rm \
-  -- curl http://sensor-simulator-service/sensor
+kubectl -n "$NS" get ingress "$WEB_INGRESS"
+curl --fail --show-error --max-time 10 "$SCHEME://$WEB_HOST/"
+printf 'Open in de browser: %s://%s/\n' "$SCHEME" "$WEB_HOST"
 ```
 
-Dit start een tijdelijke curl-Pod in dezelfde namespace. De Pod vraagt `/sensor` op via de Service en wordt na afloop verwijderd. Verwacht dezelfde JSON-velden als bij de lokale test.
+**Verwacht:** je eigen pagina met je naam. De controller, IngressClass en DNS zijn vooraf geregeld door de begeleider. Een lege `ADDRESS`-kolom is op zichzelf niet doorslaggevend; test de URL.
 
-## Checkpoint
+**Checkpoint 2:** toon de pagina en leg de route uit: browser → Ingress-controller → jouw Service → jouw Pod met nginx. De HTML komt uit jouw ConfigMap.
 
-Stap 1 is klaar wanneer:
+### Extra, alleen als je eerder klaar bent
 
-- de container lokaal sensordata toont;
-- de HTTP-route geldige JSON teruggeeft;
-- image `whu1/sensor-simulator:1.0` is gepusht;
-- de Kubernetes Deployment beschikbaar is;
-- de interne curl-test via `sensor-simulator-service` slaagt.
-
-Er is nog geen RabbitMQ-verbinding. De volgende stap is één gedeelde broker, een persoonlijke queue per deelnemer en daarna simulatorversie `2.0`.
-
-## Snelle foutcontrole
-
-| Probleem | Controle |
-| --- | --- |
-| Lokale poort 5000 is bezet | Bekijk `docker ps`; stop niet zomaar een onbekende container. |
-| YAML-bestand niet gevonden | Controleer `pwd`, `ls -l` en de bestandsnaam, inclusief spelling en extensie. |
-| `ImagePullBackOff` | Controleer image-naam, tag, succesvolle push en registry-toegang van het cluster. |
-| Geen Service-endpoint | Controleer Podstatus en de overeenkomst tussen selector en Podlabel. |
-| Curl geeft geen verbinding | Controleer endpoint, poorten en applicatielogs. |
-| `curl-test` bestaat al | Controleer `kubectl -n backend-workshop get pod curl-test`; gebruik voor een nieuwe test bijvoorbeeld de naam `curl-test-2`. |
-
-Applicatielogs bekijken:
+Wijzig één HTML-zin in `configmap.yaml` en pas het bestand opnieuw toe:
 
 ```bash
-kubectl -n backend-workshop logs deployment/sensor-simulator --tail=30
+kubectl -n "$NS" apply -f configmap.yaml
 ```
 
-[Verder naar stap 2](stap-2.md) · [Terug naar de workshop](README.md)
+Een als volume gekoppelde ConfigMap wordt uiteindelijk bijgewerkt; dit hoeft niet direct te zijn. Wacht even en ververs de browser zonder cache. Een ConfigMap-update start op zichzelf geen Deployment-rollout. Wil je tijdens de oefening voorspelbaar een nieuwe Pod met de actuele inhoud, voer dan uit:
+
+```bash
+kubectl -n "$NS" rollout restart deployment/"$WEB"
+kubectl -n "$NS" rollout status deployment/"$WEB" --timeout=90s
+```
+
+Bij één replica kan een onderbreking optreden. Pas uitsluitend jouw eigen Deployment aan. We gebruiken geen `subPath`-mount.
+
+## 6. Stap 1 klaar — 1 minuut
+
+Je hebt een image gedeployed, eigen HTML aangeboden en Service plus Ingress getest. Ga terug naar de repositorymap voor de Docker-bestanden:
+
+```bash
+cd "$REPO"
+```
+
+Ga naar [stap 2](stap-2.md). Volledige YAML en antwoorden staan bij [oplossingen](oplossingen/README.md). De vier templatebestanden staan in [stap-1/templates](stap-1/templates).
+
+## Alternatief: jouw vier bestanden handmatig aanpassen
+
+Werk je liever zoals in de demo, zonder werkmapgenerator? Gebruik dan de vier gewone YAML-bestanden in [stap-1/nginx](stap-1/nginx). Ze bevatten voorbeeldnamen met `jouwnaam` en een fictief domein. Je hoeft geen templatesyntax of generator-instellingen te bewerken.
+
+1. Kopieer de map `stap-1/nginx` naar je eigen workshopmap. Bij een gedeeld account gebruikt iedereen een eigen bovenliggende map.
+2. Vervang **overal** `jouwnaam` door je toegewezen naam: in objectnamen, ConfigMap-verwijzing, labels, selectors, Serviceverwijzing en de zichtbare HTML.
+3. Zet de echte toegewezen hostname en bestaande IngressClass in `ingress.yaml`. Voeg eventuele TLS-instellingen toe volgens de vooraf gegeven workshopconfiguratie.
+4. Controleer de image in `deployment.yaml` en alle namen met de tabel hierboven. Beide routes gebruiken dezelfde vier Kubernetes-objecten.
+5. Open een terminal in jouw map `nginx` en voer uit:
+
+```bash
+kubectl -n backend-workshop apply -f .
+# Hieronder is a01 een voorbeeld: vervang dit door jouw eigen naam.
+kubectl -n backend-workshop rollout status deployment/nginx-demo-deployment-a01 --timeout=90s
+kubectl -n backend-workshop get pods -l app=nginx-demo-a01
+kubectl -n backend-workshop get service nginx-demo-service-a01
+kubectl -n backend-workshop get ingress nginx-demo-ingress-a01
+```
+
+Deze handmatige route gebruikt geen `workshop.env`. Voor stap 2 laat je de begeleider de variabelen uit de hoofdroute voorbereiden met **dezelfde deelnemersnaam**, of gebruik je rechtstreeks jouw namen in de commando's. Pas de gegenereerde nginx-bestanden niet opnieuw toe over je handmatige werk. Gebruik één route per oefening.

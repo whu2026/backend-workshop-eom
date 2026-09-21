@@ -1,0 +1,48 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: __WEB_DEPLOYMENT__
+  namespace: backend-workshop
+  labels:
+    workshop-owner: __NAAM__
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: __WEB_APP__
+  template:
+    metadata:
+      labels:
+        app: __WEB_APP__
+        workshop-owner: __NAAM__
+    spec:
+      automountServiceAccountToken: false
+__PULL_SECRET__
+      containers:
+        - name: app
+          image: VUL_IMAGE_IN
+          imagePullPolicy: IfNotPresent
+          ports:
+            - name: http
+              containerPort: 80
+          volumeMounts:
+            - name: html-volume
+              mountPath: /usr/share/nginx/html
+              readOnly: true
+          readinessProbe:
+            httpGet:
+              path: /
+              port: http
+            initialDelaySeconds: 2
+            periodSeconds: 3
+          resources:
+            requests:
+              cpu: 50m
+              memory: 32Mi
+            limits:
+              cpu: 250m
+              memory: 128Mi
+      volumes:
+        - name: html-volume
+          configMap:
+            name: __WEB_CONFIGMAP__
