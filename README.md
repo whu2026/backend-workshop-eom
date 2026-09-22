@@ -1,4 +1,4 @@
-# Backendworkshop Kubernetes 
+# Backendworkshop Kubernetes — new-v5
 
 Van SAS Studio en Visual Analytics naar de backend: wat doet Kubernetes en hoe laat je zelf een applicatie draaien?
 
@@ -8,8 +8,7 @@ Van SAS Studio en Visual Analytics naar de backend: wat doet Kubernetes en hoe l
 | --- | --- | --- |
 | SAS 9, SAS Viya en Kubernetes | Uitleg en live demo | Begrijpen wat achter de schermen draait |
 | [Stap 1](stap-1.md): nginx | Deelnemers | Eigen YAML, Pod, Service en website |
-| [Stap 2](stap-2.md): simulatorimage | Deelnemers | Zelf gebouwde lokale image |
-| Simulator pushen en deployen | Begeleider | Dezelfde code draait in Kubernetes |
+| [Stap 2](stap-2.md): simulator | Deelnemers | Zelf bouwen en daarna zelf deployen met de beschikbare image |
 | [Stap 3](stap-3.md): controleren en verklaren | Samen | De route kunnen uitleggen |
 | RabbitMQ | Optionele demo van één minuut | Een ander voorbeeld van een workload |
 
@@ -27,9 +26,9 @@ Je bewerkt eerst vier YAML-bestanden in jouw eigen map. Je kunt vim gebruiken of
 
 - [NGINX-templates](workshop/nginx/): de vier oorspronkelijke templates met `<naam>`.
 - [Voorbeeldoplossing](oplossingen/nginx/): dezelfde templates met naam `voorbeeld`.
-- [Simulatorcode](workshop/simulator/): app.py en Dockerfile voor de build.
-- [Simulator-deploybestanden](workshop/begeleider/simulator/): alleen voor de begeleidersdemo.
+- [Simulatorbestanden](workshop/simulator/): app.py, Dockerfile en drie YAML-templates.
+- [Simulatoroplossing](oplossingen/simulator/): ingevulde YAML met voorbeeldnaam en voorbeeldimage.
 - [GitHub vernieuwen](GITHUB-VERNIEUWEN.md): zelf lokaal uitvoeren.
 - [SAS 9 en Viya](SAS-9-EN-VIYA.md) en [bronnen](BRONNEN.md).
 
-Deelnemers hebben geen Docker Hub-account nodig en voeren geen push of simulator-deployment uit. De begeleider gebruikt zijn eigen account. DNS en toegang voor de aangeleverde workshophostnamen worden vooraf geregeld.
+Deelnemers bouwen en deployen zelf, maar hoeven niets naar Docker Hub te pushen en hebben geen Docker Hub-account nodig. De begeleider zorgt vooraf voor een beschikbare image van dezelfde code en geeft de volledige image-naam inclusief tag door. De voorbeeldtag in dit pakket is `whu1/sensor-simulator:workshop-v5`; beschikbaarheid moet vooraf worden geregeld. DNS en toegang voor de nginx- en simulatorhostnamen worden vooraf voorbereid.

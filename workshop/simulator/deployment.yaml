@@ -1,20 +1,20 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: sensor-simulator-demo
+  name: sensor-simulator-deployment-<naam>
   namespace: backend-workshop
 spec:
   replicas: 1
   selector:
     matchLabels:
-      app: sensor-simulator-demo
+      app: sensor-simulator-<naam>
   template:
     metadata:
       labels:
-        app: sensor-simulator-demo
+        app: sensor-simulator-<naam>
     spec:
       containers:
         - name: simulator
-          image: mijn-account/sensor-simulator:new-v4
+          image: VUL_BESCHIKBARE_IMAGE_IN
           ports:
             - containerPort: 5000

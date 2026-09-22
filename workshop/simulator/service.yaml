@@ -1,11 +1,11 @@
 apiVersion: v1
 kind: Service
 metadata:
-  name: sensor-simulator-demo
+  name: sensor-simulator-service-<naam>
   namespace: backend-workshop
 spec:
   selector:
-    app: sensor-simulator-demo
+    app: sensor-simulator-<naam>
   ports:
     - port: 80
       targetPort: 5000

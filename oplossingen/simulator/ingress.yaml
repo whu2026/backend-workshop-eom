@@ -1,18 +1,18 @@
 apiVersion: networking.k8s.io/v1
 kind: Ingress
 metadata:
-  name: sensor-simulator-demo
+  name: sensor-simulator-ingress-voorbeeld
   namespace: backend-workshop
 spec:
   ingressClassName: nginx
   rules:
-    - host: simulator-demo.k8s.eom.local
+    - host: simulator-voorbeeld.k8s.eom.local
       http:
         paths:
           - path: /
             pathType: Prefix
             backend:
               service:
-                name: sensor-simulator-demo
+                name: sensor-simulator-service-voorbeeld
                 port:
                   number: 80

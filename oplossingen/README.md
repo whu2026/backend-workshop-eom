@@ -4,4 +4,6 @@
 
 De oorspronkelijke nginx-template is behouden. Alleen de ontbrekende persoonlijke achtervoegsels bij `configMap.name` en de Ingress-Serviceverwijzing zijn hersteld. De vaste naam in de hostname is vervangen door `<naam>`. De image blijft `nginx:latest`; er zijn geen probes, resources of extra labels toegevoegd.
 
-De simulatorbuild heeft geen verplichte codewijzigingen. De Kubernetes-bestanden onder `workshop/begeleider/simulator` zijn voor de begeleidersdemo.
+[simulator](simulator/) bevat de drie deelnemerstemplates ingevuld met naam `voorbeeld` en voorbeeldimage `whu1/sensor-simulator:workshop-v5`. De begeleider moet die tag vooraf beschikbaar maken of vervangen door de definitieve image. Gebruik je eigen naam bij het deployen.
+
+De simulatorbuild vereist geen codewijzigingen. Deelnemers bouwen lokaal, vullen vervolgens de beschikbare registry-image in hun Deployment in en deployen zelf. Niemand hoeft tijdens de workshop een image te pushen.

@@ -1,0 +1,20 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: sensor-simulator-deployment-voorbeeld
+  namespace: backend-workshop
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: sensor-simulator-voorbeeld
+  template:
+    metadata:
+      labels:
+        app: sensor-simulator-voorbeeld
+    spec:
+      containers:
+        - name: simulator
+          image: whu1/sensor-simulator:workshop-v5
+          ports:
+            - containerPort: 5000

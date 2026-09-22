@@ -1,6 +1,6 @@
 # Stap 3 — Controleren en verklaren
 
-**Tijd:** circa 2½ minuut. De nginx-opdracht en simulatorbuild zijn klaar.
+**Tijd:** circa 2½ minuut. De nginx-opdracht, simulatorbuild en simulator-deployment zijn klaar.
 
 ## Opdracht 1 — Zoek jouw resources
 
@@ -9,9 +9,9 @@ kubectl -n backend-workshop get pods -o wide
 kubectl -n backend-workshop get svc
 ```
 
-Zoek jouw nginx-Pod en Service. Open ook je nginx-URL in de browser.
+Zoek jouw nginx-Pod en simulator-Pod en hun Services. Open zowel de nginx-URL als de simulator-URL met `/sensor` in de browser.
 
-**Verwacht:** jouw Pod staat op Running en 1/1 Ready; de Service biedt poort 80 aan; de browser toont HTML uit de ConfigMap.
+**Verwacht:** beide Pods staan op Running en 1/1 Ready. Beide Services bieden poort 80 aan. De nginx-website toont HTML; de simulator-URL toont JSON.
 
 **Antwoord:** de Podstatus laat zien dat de container draait en Ready is. Het bestaan van de Service bewijst nog niet dat de volledige website werkt. Daarvoor bekijken we de browser.
 
@@ -25,8 +25,10 @@ Zoek jouw nginx-Pod en Service. Open ook je nginx-URL in de browser.
 | Wat vindt de juiste Pods? | De selector van de Service die bij de Podlabels past. |
 | Wat koppelt hostname en pad aan een Service? | De Ingress-regel, uitgevoerd door de Ingress-controller. |
 | Waar staat de nginx-HTML? | In de ConfigMap, als bestand beschikbaar in de container. |
-| Wie bouwde de simulatorimage? | De deelnemers; de begeleider gebruikte zijn eigen demo-build. |
-| Wie pushte en deployde de simulator? | De begeleider, met zijn eigen Docker Hub-account. |
+| Wie bouwde lokaal een simulatorimage? | Iedere deelnemer. |
+| Welke image gebruiken de simulator-Pods? | De vooraf beschikbare registry-image van dezelfde code. |
+| Wie publiceerde die image? | De begeleider vooraf. Deelnemers pushen niets. |
+| Wie deployde de simulator? | Iedere deelnemer in een eigen Deployment. |
 
 ## Opdracht 3 — Leg de route uit
 
