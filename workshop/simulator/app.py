@@ -1,50 +1,37 @@
-"""Workshop-app: één proces, één meting per seconde, HTTP op 5000."""
-import json
+from flask import Flask, jsonify
+from datetime import datetime, timezone
 import random
 import threading
 import time
-from datetime import datetime, timezone
-from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
-import os
 
-lock = threading.Lock()
-latest = {}
+app = Flask(__name__)
 
-def measure():
-    sequence = 0
+latest_data = {
+    "sensor_id": "sensor-001",
+    "timestamp": None,
+    "temperature": None,
+    "humidity": None,
+    "sequence": 0,
+}
+
+
+def generate_sensor_data():
+    """Generate a new sensor measurement every second."""
     while True:
-        sequence += 1
-        data = {
-            "sensor_id": os.getenv("HOSTNAME", "simulator"),
-            "timestamp": datetime.now(timezone.utc).isoformat(),
-            "temperature": round(random.uniform(18, 25), 1),
-            "humidity": round(random.uniform(35, 65), 1),
-            "sequence": sequence,
-        }
-        with lock:
-            latest.clear()
-            latest.update(data)
-        print(json.dumps(data), flush=True)
+        latest_data["sequence"] += 1
+        latest_data["timestamp"] = datetime.now(timezone.utc).isoformat()
+        latest_data["temperature"] = round(random.uniform(18.0, 28.0), 2)
+        latest_data["humidity"] = round(random.uniform(35.0, 70.0), 2)
+
         time.sleep(1)
 
-class Handler(BaseHTTPRequestHandler):
-    def do_GET(self):
-        path = self.path.split("?", 1)[0]
-        if path == "/healthz":
-            data, status = {"status": "ok"}, 200
-        elif path in ("/", "/sensor"):
-            with lock:
-                data = dict(latest)
-            status = 200 if data else 503
-        else:
-            data, status = {"error": "Gebruik /sensor of /healthz"}, 404
-        body = json.dumps(data).encode("utf-8")
-        self.send_response(status)
-        self.send_header("Content-Type", "application/json")
-        self.send_header("Content-Length", str(len(body)))
-        self.end_headers()
-        self.wfile.write(body)
+
+@app.get("/sensor")
+def get_sensor_data():
+    return jsonify(latest_data.copy())
+
 
 if __name__ == "__main__":
-    threading.Thread(target=measure, daemon=True).start()
-    ThreadingHTTPServer(("0.0.0.0", 5000), Handler).serve_forever()
+    threading.Thread(target=generate_sensor_data, daemon=True).start()
+
+    app.run(host="0.0.0.0", port=5000)
