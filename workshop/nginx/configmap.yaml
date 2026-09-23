@@ -7,7 +7,7 @@ data:
     <!DOCTYPE html>
     <html>
     <head>
-      <title>Backend Workshop</title>
+      <title>Backend Workshop -- <naam></title>
       <style>
         body {
           background: #eef2f7;
