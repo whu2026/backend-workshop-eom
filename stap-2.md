@@ -39,7 +39,7 @@ docker run --rm sensor-simulator:wenjie
 De begeleider geeft de **volledige registry-image inclusief tag**. Het voorbeeld in dit pakket is:
 
 ```text
-whu1/sensor-simulator:workshop-v5
+whu1/sensor-simulator:1.0
 ```
 
 Dit is een **voorbeeldtag die de begeleider vooraf moet publiceren of vervangen**. Gebruik tijdens de workshop de bevestigde naam. Je eigen lokale tag `sensor-simulator:wenjie` is voor deze opdracht niet de image die Kubernetes ophaalt. We deployen een vooraf gepubliceerde image van dezelfde code.
