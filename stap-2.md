@@ -41,15 +41,18 @@ Tot nu toe hebben we onze Docker-image lokaal gebouwd. Maar een lokaal gebouwde 
 Daarom heeft de begeleider de simulator-image vooraf naar Docker Hub geüpload.
 Hiervoor zijn de volgende commando's gebruikt:
 
+```bash
 sudo docker tag sensor-simulator:1.0 whu1/sensor-simulator:1.0
 sudo docker push whu1/sensor-simulator:1.0
+```
 
 Wat gebeurt hier?
 docker tag geeft de lokale image een nieuwe naam die verwijst naar de Docker Hub-repository.
 docker push uploadt de image naar Docker Hub.
 De image is vervolgens beschikbaar onder:
+```bash
 whu1/sensor-simulator:1.0
-
+```
 Kubernetes kan deze image vanuit Docker Hub downloaden en gebruiken om de simulator-container te starten.
 Voor de deelnemers: deze stap is al uitgevoerd. Jullie hoeven de image niet zelf naar Docker Hub te uploaden. We gaan de beschikbare image gebruiken in onze Deployment.
 
