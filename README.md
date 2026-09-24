@@ -1,4 +1,4 @@
-# Backendworkshop Kubernetes — new-v5
+# Backendworkshop Kubernetes
 
 Van SAS Studio en Visual Analytics naar de backend: wat doet Kubernetes en hoe laat je zelf een applicatie draaien?
 
