@@ -44,7 +44,7 @@ whu1/sensor-simulator:1.0
 
 Dit is een **voorbeeldtag die de begeleider vooraf moet publiceren of vervangen**. Gebruik tijdens de workshop de bevestigde naam. Je eigen lokale tag `sensor-simulator:wenjie` is voor deze opdracht niet de image die Kubernetes ophaalt. We deployen een vooraf gepubliceerde image van dezelfde code.
 
-YAML-bestanden aanpassen in MobaXterm
+### YAML-bestanden aanpassen in MobaXterm
 
 Open in het SFTP-paneel van MobaXterm jouw persoonlijke map workshop/simulator/<naam>.
 Dubbelklik op deployment.yaml om het bestand te openen in de editor van MobaXterm.
