@@ -30,25 +30,17 @@ Vervang **overal `<naam>`** (inclusief punthaken) door dezelfde naam. De image `
 
 De host is zonder `http://` en zonder pad. Gebruik jouw afgesproken naam binnen het voorbereide domein. Een Ingress maakt zelf geen DNS-record.
 
-### Keuze A — vim in de terminal
+### YAML-bestanden aanpassen in MobaXterm
 
-```bash
-vim configmap.yaml
-vim deployment.yaml
-vim service.yaml
-vim ingress.yaml
-```
+Open in het SFTP-paneel van MobaXterm jouw persoonlijke map workshop/nginx/<naam>.
 
-Voer ze één voor één uit. Druk in vim op **i** om te bewerken. Druk daarna op **Esc**, typ **:wq** en druk **Enter** om op te slaan en af te sluiten. `:q!` sluit af zonder wijzigingen op te slaan.
+Dubbelklik op een YAML-bestand om het te openen in de ingebouwde editor van MobaXterm.
 
-### Keuze B — Notepad of VS Code op je laptop
+Vervang <naam> door je eigen naam en pas de benodigde gegevens aan.
 
-1. Open in het SFTP-paneel van MobaXterm jouw map `workshop/nginx/wenjie` op de workshopserver.
-2. Download alleen jouw vier YAML-bestanden naar een lokale map.
-3. Open ze met Notepad of VS Code en vervang `<naam>` overal.
-4. Sla op als UTF-8 met de extensie `.yaml`, niet `.yaml.txt`. Gebruik spaties voor inspringing.
-5. Upload de bestanden terug naar dezelfde eigen map op de workshopserver en vervang daar jouw kopieën.
-6. Ga pas verder als alle vier bestanden zijn opgeslagen en teruggestuurd.
+Sla het bestand op met Ctrl + S.
+
+Herhaal dit voor alle vier de YAML-bestanden: configmap.yaml, deployment.yaml, service.yaml en ingress.yaml.
 
 **Vraag:** waarom dezelfde naam in labels en selectors?  
 **Antwoord:** de Service vindt jouw Pod via de bijpassende `app`-waarde. Een verkeerde waarde kan naar geen of naar de verkeerde Pods verwijzen.
