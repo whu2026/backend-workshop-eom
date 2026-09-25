@@ -9,7 +9,7 @@ Vervang `wenjie` door jouw naam. De begeleider heeft `~/workshop/simulator` klaa
 ```bash
 cd ~/workshop/simulator
 mkdir wenjie
-cp app.py Dockerfile *.yaml wenjie/
+cp app.py requirements.txt Dockerfile *.yaml wenjie/
 cd wenjie
 docker build -t sensor-simulator:wenjie .
 docker images sensor-simulator
